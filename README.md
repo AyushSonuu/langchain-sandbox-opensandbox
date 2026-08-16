@@ -1,16 +1,19 @@
-# langchain-opensandbox
+# langchain-sandbox-opensandbox
 
-[![PyPI - Version](https://img.shields.io/pypi/v/langchain-opensandbox?label=%20)](https://pypi.org/project/langchain-opensandbox/#history)
-[![PyPI - License](https://img.shields.io/pypi/l/langchain-opensandbox)](https://opensource.org/licenses/Apache-2.0)
-[![PyPI - Downloads](https://img.shields.io/pepy/dt/langchain-opensandbox)](https://pypistats.org/packages/langchain-opensandbox)
+[![PyPI - Version](https://img.shields.io/pypi/v/langchain-sandbox-opensandbox?label=%20)](https://pypi.org/project/langchain-sandbox-opensandbox/#history)
+[![PyPI - License](https://img.shields.io/pypi/l/langchain-sandbox-opensandbox)](https://opensource.org/licenses/Apache-2.0)
+[![PyPI - Downloads](https://img.shields.io/pepy/dt/langchain-sandbox-opensandbox)](https://pypistats.org/packages/langchain-sandbox-opensandbox)
 
 [OpenSandbox](https://github.com/opensandbox-group/OpenSandbox) sandbox integration for [Deep Agents](https://github.com/langchain-ai/deepagents).
 
 ## Quick Install
 
 ```bash
-uv add langchain-opensandbox
+uv add langchain-sandbox-opensandbox
 ```
+
+> The distribution is published as `langchain-sandbox-opensandbox`, but the
+> import package is `langchain_opensandbox`.
 
 ```python
 from opensandbox import SandboxSync
@@ -68,7 +71,7 @@ This package follows [semantic versioning](https://semver.org/).
 ## Contributing
 
 Contributions are welcome. Please open an issue or pull request on
-[GitHub](https://github.com/AyushSonuu/langchain-opensandbox).
+[GitHub](https://github.com/AyushSonuu/langchain-sandbox-opensandbox).
 
 ## License
 

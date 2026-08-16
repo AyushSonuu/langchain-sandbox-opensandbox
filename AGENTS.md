@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repository.
 
 ## What this package is
 
-`langchain-opensandbox` is a partner integration package. It provides
+`langchain-sandbox-opensandbox` is a partner integration package. It provides
 `OpenSandboxBackend`, an adapter that lets [Deep Agents](https://github.com/langchain-ai/deepagents)
 run commands and file operations inside an [OpenSandbox](https://github.com/opensandbox-group/OpenSandbox)
 environment.

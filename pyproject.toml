@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "langchain-opensandbox"
+name = "langchain-sandbox-opensandbox"
 description = "OpenSandbox sandbox integration for Deep Agents"
 license = { text = "Apache-2.0" }
 readme = "README.md"
@@ -30,9 +30,9 @@ dependencies = [
 packages = ["langchain_opensandbox"]
 
 [project.urls]
-Homepage = "https://github.com/AyushSonuu/langchain-opensandbox"
-Repository = "https://github.com/AyushSonuu/langchain-opensandbox"
-Documentation = "https://github.com/AyushSonuu/langchain-opensandbox#readme"
+Homepage = "https://github.com/AyushSonuu/langchain-sandbox-opensandbox"
+Repository = "https://github.com/AyushSonuu/langchain-sandbox-opensandbox"
+Documentation = "https://github.com/AyushSonuu/langchain-sandbox-opensandbox#readme"
 
 [dependency-groups]
 test = [
