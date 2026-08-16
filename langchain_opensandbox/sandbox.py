@@ -96,7 +96,7 @@ class OpenSandboxBackend(BaseSandbox):
 
         return ExecuteResponse(
             output=output,
-            exit_code=execution.exit_code if execution.exit_code is not None else 0,
+            exit_code=execution.exit_code,
             truncated=False,
         )
 

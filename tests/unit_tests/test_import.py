@@ -62,13 +62,15 @@ def test_execute_appends_stderr() -> None:
     assert result.exit_code == 1
 
 
-def test_execute_none_exit_code_defaults_to_zero() -> None:
+def test_execute_none_exit_code_preserved() -> None:
     sb, mock_sdk = _make_backend()
     mock_sdk.commands.run.return_value = _make_execution(stdout="x", exit_code=None)
 
     result = sb.execute("echo x")
 
-    assert result.exit_code == 0
+    # None means "could not be determined" (e.g. timeout/kill); it must not be
+    # coerced to 0, which would report a non-completing command as success.
+    assert result.exit_code is None
 
 
 def test_upload_rejects_relative_paths() -> None:
