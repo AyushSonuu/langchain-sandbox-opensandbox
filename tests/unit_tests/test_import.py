@@ -23,6 +23,9 @@ def _make_execution(
 def _make_backend() -> tuple[OpenSandboxBackend, MagicMock]:
     mock_sdk = MagicMock()
     mock_sdk.id = "sb-123"
+    # Default probe result: `test -e`/classification commands report "does not
+    # exist" so uploads proceed and downloads fall through to the raw message.
+    mock_sdk.commands.run.return_value = _make_execution(exit_code=1)
     return OpenSandboxBackend(sandbox=mock_sdk), mock_sdk
 
 
@@ -91,6 +94,17 @@ def test_upload_writes_absolute_paths() -> None:
     assert mock_sdk.files.write_files.call_count == 1
 
 
+def test_upload_rejects_existing_file() -> None:
+    sb, mock_sdk = _make_backend()
+    # `test -e` reports the path already exists.
+    mock_sdk.commands.run.return_value = _make_execution(exit_code=0)
+
+    responses = sb.upload_files([("/tmp/a.txt", b"data")])
+
+    assert "already exists" in responses[0].error.lower()
+    mock_sdk.files.write_files.assert_not_called()
+
+
 def test_download_rejects_relative_paths() -> None:
     sb, mock_sdk = _make_backend()
 
@@ -110,11 +124,43 @@ def test_download_returns_content() -> None:
     assert responses[0].error is None
 
 
-def test_download_captures_errors() -> None:
+def test_download_maps_missing_to_file_not_found() -> None:
     sb, mock_sdk = _make_backend()
-    mock_sdk.files.read_bytes.side_effect = RuntimeError("not found")
+    mock_sdk.files.read_bytes.side_effect = RuntimeError("boom")
+    mock_sdk.commands.run.return_value = _make_execution(stdout="MISSING", exit_code=0)
 
     responses = sb.download_files(["/tmp/missing.txt"])
 
     assert responses[0].content is None
-    assert "not found" in responses[0].error
+    assert responses[0].error == "file_not_found"
+
+
+def test_download_maps_directory_to_is_directory() -> None:
+    sb, mock_sdk = _make_backend()
+    mock_sdk.files.read_bytes.side_effect = RuntimeError("boom")
+    mock_sdk.commands.run.return_value = _make_execution(stdout="DIR", exit_code=0)
+
+    responses = sb.download_files(["/tmp/dir"])
+
+    assert responses[0].error == "is_directory"
+
+
+def test_download_maps_unreadable_to_permission_denied() -> None:
+    sb, mock_sdk = _make_backend()
+    mock_sdk.files.read_bytes.side_effect = RuntimeError("boom")
+    mock_sdk.commands.run.return_value = _make_execution(stdout="NOREAD", exit_code=0)
+
+    responses = sb.download_files(["/tmp/secret"])
+
+    assert responses[0].error == "permission_denied"
+
+
+def test_download_falls_back_to_raw_error() -> None:
+    sb, mock_sdk = _make_backend()
+    mock_sdk.files.read_bytes.side_effect = RuntimeError("weird transport error")
+    mock_sdk.commands.run.return_value = _make_execution(stdout="OTHER", exit_code=0)
+
+    responses = sb.download_files(["/tmp/x.txt"])
+
+    assert responses[0].content is None
+    assert "weird transport error" in responses[0].error

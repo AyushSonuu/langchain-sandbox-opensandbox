@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import shlex
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from deepagents.backends.protocol import (
+    FILE_NOT_FOUND,
+    INVALID_PATH,
+    IS_DIRECTORY,
+    PERMISSION_DENIED,
     ExecuteResponse,
     FileDownloadResponse,
     FileUploadResponse,
@@ -87,8 +92,12 @@ class OpenSandboxBackend(BaseSandbox):
         )
         execution = self._sandbox.commands.run(command, opts=opts)
 
-        stdout = "".join(msg.text for msg in execution.logs.stdout)
-        stderr = "".join(msg.text for msg in execution.logs.stderr)
+        # OpenSandbox streams stdout/stderr as one message per line, with the
+        # trailing newline stripped. Rejoin with "\n" to reconstruct the output
+        # (a single long line is delivered as one message, so this does not
+        # introduce spurious breaks). A trailing newline cannot be recovered.
+        stdout = "\n".join(msg.text for msg in execution.logs.stdout)
+        stderr = "\n".join(msg.text for msg in execution.logs.stderr)
 
         output = stdout
         if stderr.strip():
@@ -108,7 +117,9 @@ class OpenSandboxBackend(BaseSandbox):
 
         Returns:
             One response per input file, in the same order. Paths that are not
-            absolute are rejected with ``invalid_path``.
+            absolute are rejected with ``invalid_path``. Existing paths are
+            rejected with an ``already exists`` error and left untouched, so a
+            write never silently clobbers a file.
         """
         responses: list[FileUploadResponse] = []
         entries: list[WriteEntry] = []
@@ -116,7 +127,13 @@ class OpenSandboxBackend(BaseSandbox):
 
         for i, (path, content) in enumerate(files):
             if not path.startswith("/"):
-                responses.append(FileUploadResponse(path=path, error="invalid_path"))
+                responses.append(FileUploadResponse(path=path, error=INVALID_PATH))
+                continue
+            probe = self.execute(f"test -e {shlex.quote(path)}")
+            if probe.exit_code == 0:
+                responses.append(
+                    FileUploadResponse(path=path, error=f"File already exists: {path}")
+                )
                 continue
             entries.append(WriteEntry(path=path, data=content, mode=DEFAULT_FILE_MODE))
             valid_indices.append(i)
@@ -139,25 +156,57 @@ class OpenSandboxBackend(BaseSandbox):
 
         Returns:
             One response per input path, in the same order. Non-absolute paths
-            are rejected with ``invalid_path``; read failures carry the error
-            message.
+            are rejected with ``invalid_path``; read failures are normalized to
+            a ``FileOperationError`` code (``file_not_found``, ``is_directory``,
+            ``permission_denied``) where possible, falling back to the raw error
+            message otherwise.
         """
         responses: list[FileDownloadResponse] = []
 
         for path in paths:
             if not path.startswith("/"):
                 responses.append(
-                    FileDownloadResponse(path=path, content=None, error="invalid_path")
+                    FileDownloadResponse(path=path, content=None, error=INVALID_PATH)
                 )
                 continue
             try:
                 content = self._sandbox.files.read_bytes(path)
+            except Exception as exc:  # noqa: BLE001
+                responses.append(
+                    FileDownloadResponse(
+                        path=path,
+                        content=None,
+                        error=self._classify_read_error(path, exc),
+                    )
+                )
+            else:
                 responses.append(
                     FileDownloadResponse(path=path, content=content, error=None)
                 )
-            except Exception as exc:  # noqa: BLE001
-                responses.append(
-                    FileDownloadResponse(path=path, content=None, error=str(exc))
-                )
 
         return responses
+
+    def _classify_read_error(self, path: str, exc: Exception) -> str:
+        """Normalize a failed read into a ``FileOperationError`` code.
+
+        Probes the path with a single command so the error the model sees is a
+        stable code rather than a transport-specific SDK message.
+        """
+        quoted = shlex.quote(path)
+        probe = self.execute(
+            f"if [ -d {quoted} ]; then echo DIR; "
+            f"elif [ ! -e {quoted} ]; then echo MISSING; "
+            f"elif [ ! -r {quoted} ]; then echo NOREAD; "
+            f"else echo OTHER; fi"
+        )
+        marker = probe.output.strip()
+        if marker == "DIR":
+            return IS_DIRECTORY
+        if marker == "MISSING":
+            return FILE_NOT_FOUND
+        if marker == "NOREAD":
+            return PERMISSION_DENIED
+        message = str(exc)
+        if "FILE_NOT_FOUND" in message or "no such file" in message.lower():
+            return FILE_NOT_FOUND
+        return message
