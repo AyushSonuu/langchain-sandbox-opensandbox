@@ -849,7 +849,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "deepagents", specifier = ">=0.7.0" },
+    { name = "deepagents", specifier = ">=0.7.0,<0.8.0" },
     { name = "opensandbox", specifier = ">=0.1.15" },
 ]
 
