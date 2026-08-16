@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
 from deepagents.backends.protocol import (
     ExecuteResponse,
@@ -10,11 +11,13 @@ from deepagents.backends.protocol import (
     FileUploadResponse,
 )
 from deepagents.backends.sandbox import BaseSandbox
-from opensandbox import SandboxSync
-from opensandbox.models import RunCommandOpts, WriteEntry
+from opensandbox.models import WriteEntry
+from opensandbox.models.execd import RunCommandOpts
+
+if TYPE_CHECKING:
+    from opensandbox import SandboxSync
 
 DEFAULT_FILE_MODE = 0o644
-COMMAND_TIMEOUT_EXIT_CODE = 124
 
 
 class OpenSandboxBackend(BaseSandbox):
@@ -80,9 +83,7 @@ class OpenSandboxBackend(BaseSandbox):
         """
         effective_timeout = timeout if timeout is not None else self._default_timeout
         opts = RunCommandOpts(
-            timeout=timedelta(seconds=effective_timeout)
-            if effective_timeout
-            else None,
+            timeout=timedelta(seconds=effective_timeout) if effective_timeout else None,
         )
         execution = self._sandbox.commands.run(command, opts=opts)
 

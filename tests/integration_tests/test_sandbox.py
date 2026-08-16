@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Iterator
+from typing import TYPE_CHECKING
 
 import pytest
 from langchain_tests.integration_tests import SandboxIntegrationTests
 from opensandbox import SandboxSync
 
 from langchain_opensandbox import OpenSandboxBackend
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("OPENSANDBOX_DOMAIN"),
