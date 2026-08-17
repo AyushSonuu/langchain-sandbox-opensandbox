@@ -55,8 +55,10 @@ result = agent.invoke(
 )
 print(result["messages"][-1].content)
 
-# 3. Tear the sandbox down when you're done.
-sandbox.kill()
+# 3. Tear the sandbox down when you're done. destroy() terminates the remote
+#    sandbox and closes local resources (kill() alone leaves the local
+#    transport open).
+sandbox.destroy()
 ```
 
 The higher-level file helpers the agent calls (`ls`, `read_file`,

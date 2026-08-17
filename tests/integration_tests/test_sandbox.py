@@ -44,4 +44,4 @@ class TestOpenSandboxStandard(SandboxIntegrationTests):
         try:
             yield OpenSandboxBackend(sandbox=sb, timeout=120)
         finally:
-            sb.kill()
+            sb.destroy()
